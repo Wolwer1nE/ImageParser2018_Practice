@@ -14,14 +14,15 @@ using Emgu.CV.OCR;
 
 namespace Project2
 {
-    public class shape
+    public class Shape
     {
-        public string Shape(string filename)
+        public string ShapeD(string filename)
         {
             StringBuilder msgBuilder = new StringBuilder("Performance: ");
 
             Image<Bgr, Byte> img = new Image<Bgr, byte>(filename);
-
+            img = img.Resize(img.Width * 2, img.Height * 2, Emgu.CV.CvEnum.Inter.Linear, true);
+           
             Stopwatch watch = Stopwatch.StartNew();
             double cannyThreshold = 180.0;
             
@@ -89,13 +90,20 @@ namespace Project2
 
             #region draw rectangles
             Image<Bgr, Byte> triangleRectangleImage = img.CopyBlank();
+            Image<Bgr, Byte> rect = img.Copy();
             foreach (RotatedRect box in boxList)
             {
+
+                rect.Data[(int)box.Center.Y - (int)box.Size.Height/2, (int)box.Center.X - (int)box.Size.Width / 2, 0]
+                    = img.Data[(int)box.Center.Y - (int)box.Size.Height / 2, (int)box.Center.X - (int)box.Size.Width / 2, 0];
+
+                rect.Save("002.png");
+
                 licensePlateImagesList.Add(triangleRectangleImage);
                 triangleRectangleImage.Draw(box, new Bgr(Color.DarkOrange), 2);
             }
 
-            var lic = new licPlateRecog.LicensePlateDetector();
+            var lic = new LicPlateRecog.LicensePlateDetector();
             var licoutput = lic.DetectLicensePlate(img, licensePlateImagesList, licensePlateImagesList, boxList);
 
             triangleRectangleImage.Save("rectangles.png");

@@ -14,40 +14,18 @@ using System.Threading;
 
 namespace Project2
 {
-    public class licPlateRecog
+    public class LicPlateRecog
     {
-        /// <summary>
-        /// A simple license plate detector
-        /// </summary>
         public class LicensePlateDetector : DisposableObject
         {
-            /// <summary>
-            /// The OCR engine
-            /// </summary>
             private Tesseract _ocr;
 
-            /// <summary>
-            /// Create a license plate detector
-            /// </summary>
-            /// <param name="dataPath">
-            /// The datapath must be the name of the parent directory of tessdata and
-            /// must end in / . Any name after the last / will be stripped.
-            /// </param>
             public LicensePlateDetector()
             {
-                //create OCR engine
-                _ocr = new Tesseract(@"C:\", "rus", OcrEngineMode.TesseractLstmCombined);
+                _ocr = new Tesseract(@".\", "rus", OcrEngineMode.TesseractLstmCombined);
                 _ocr.SetVariable("tessedit_char_whitelist", "абвгдеёжзийклмнопрстуфхцчшщъыьэюя-1234567890");
             }
 
-            /// <summary>
-            /// Detect license plate from the given image
-            /// </summary>
-            /// <param name="img">The image to search license plate from</param>
-            /// <param name="licensePlateImagesList">A list of images where the detected license plate regions are stored</param>
-            /// <param name="filteredLicensePlateImagesList">A list of images where the detected license plate regions (with noise removed) are stored</param>
-            /// <param name="detectedLicensePlateRegionList">A list where the regions of license plate (defined by an MCvBox2D) are stored</param>
-            /// <returns>The list of words for each license plate</returns>
             public List<String> DetectLicensePlate(
                IInputArray img,
                List<IInputOutputArray> licensePlateImagesList,
@@ -92,7 +70,7 @@ namespace Project2
                 for (; idx >= 0; idx = hierachy[idx, 0])
                 {
                     int numberOfChildren = GetNumberOfChildren(hierachy, idx);
-                    //if it does not contains any children (charactor), it is not a license plate region
+                   
                     if (numberOfChildren == 0) continue;
 
                     using (VectorOfPoint contour = contours[idx])
@@ -101,8 +79,6 @@ namespace Project2
                         {
                             if (numberOfChildren < 3)
                             {
-                                //If the contour has less than 3 children, it is not a license plate (assuming license plate has at least 3 charactor)
-                                //However we should search the children of this contour to see if any of them is a license plate
                                 FindLicensePlate(contours, hierachy, hierachy[idx, 2], gray, canny, licensePlateImagesList,
                                    filteredLicensePlateImagesList, detectedLicensePlateRegionList, licenses);
                                 continue;
@@ -127,11 +103,8 @@ namespace Project2
                             double whRatio = (double)box.Size.Width / box.Size.Height;
                             if (!(3.0 < whRatio && whRatio < 10.0))
                             //if (!(1.0 < whRatio && whRatio < 2.0))
-                            {
-                                //if the width height ratio is not in the specific range,it is not a license plate 
-                                //However we should search the children of this contour to see if any of them is a license plate
-                                //Contour<Point> child = contours.VNext;
-                                if (hierachy[idx, 2] > 0)
+                            { 
+                              if (hierachy[idx, 2] > 0)
                                     FindLicensePlate(contours, hierachy, hierachy[idx, 2], gray, canny, licensePlateImagesList,
                                        filteredLicensePlateImagesList, detectedLicensePlateRegionList, licenses);
                                 continue;
@@ -153,13 +126,12 @@ namespace Project2
                                     CvInvoke.WarpAffine(gray, tmp1, rot, Size.Round(box.Size));
                                 }
 
-                                //resize the license plate such that the front is ~ 10-12. This size of front results in better accuracy from tesseract
-                                Size approxSize = new Size(240, 180);
+                              Size approxSize = new Size(240, 180);
                                 double scale = Math.Min(approxSize.Width / box.Size.Width, approxSize.Height / box.Size.Height);
                                 Size newSize = new Size((int)Math.Round(box.Size.Width * scale), (int)Math.Round(box.Size.Height * scale));
                                 CvInvoke.Resize(tmp1, tmp2, newSize, 0, 0, Inter.Cubic);
 
-                                //removes some pixels from the edge
+                               
                                 int edgePixelSize = 2;
                                 Rectangle newRoi = new Rectangle(new Point(edgePixelSize, edgePixelSize),
                                    tmp2.Size - new Size(2 * edgePixelSize, 2 * edgePixelSize));
@@ -171,7 +143,8 @@ namespace Project2
                                 StringBuilder strBuilder = new StringBuilder();
                                 using (UMat tmp = filteredPlate.Clone())
                                 {
-                                    _ocr.Recognize(tmp);
+                                    _ocr.SetImage(tmp);
+                                    _ocr.Recognize();
                                     words = _ocr.GetCharacters();
 
                                     if (words.Length == 0) continue;
@@ -193,16 +166,12 @@ namespace Project2
                 }
             }
 
-            /// <summary>
-            /// Filter the license plate to remove noise
-            /// </summary>
-            /// <param name="plate">The license plate image</param>
-            /// <returns>License plate image without the noise</returns>
+           
             private static UMat FilterPlate(UMat plate)
             {
                 UMat thresh = new UMat();
                 CvInvoke.Threshold(plate, thresh, 120, 255, ThresholdType.BinaryInv);
-                //Image<Gray, Byte> thresh = plate.ThresholdBinaryInv(new Gray(120), new Gray(255));
+               
 
                 Size plateSize = plate.Size;
                 using (Mat plateMask = new Mat(plateSize.Height, plateSize.Width, DepthType.Cv8U, 1))
@@ -226,7 +195,7 @@ namespace Project2
                                 Rectangle roi = new Rectangle(Point.Empty, plate.Size);
                                 rect.Intersect(roi);
                                 CvInvoke.Rectangle(plateMask, rect, new MCvScalar(), -1);
-                                //plateMask.Draw(rect, new Gray(0.0), -1);
+                                
                             }
                         }
 

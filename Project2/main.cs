@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace Project2
 {
-    class main
+    class Main
     {
-        static void Main(string[] args)
+        static void Mainn(string[] args)
         {
-            var shapeD = new shape();
-            var output = shapeD.Shape("001.gif");
+            var shapeD = new Shape();
+            var output = shapeD.ShapeD("001.gif");
             Console.WriteLine(output);
             Console.ReadKey();
         }
